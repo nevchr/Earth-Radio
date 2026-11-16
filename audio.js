@@ -20,12 +20,18 @@
     co2: { id: 'co2', type: 'video', url: './assets/co2.mp4', hz: 5, source: 'https://svs.gsfc.nasa.gov/5196/', period: 'January–March 2020 model sequence', scope: 'Orbiting global view; not a local station measurement' }
   };
 
+  for (const source of Object.values(SOURCES)) {
+    if (source.type === 'video' && !source.hdUrl) source.hdUrl = source.url.replace(/\.mp4$/, '-hd.mp4');
+    source.hdPoster = source.type === 'image' ? source.hdUrl : source.url.replace(/\.mp4$/, '-poster-hd.jpg');
+  }
+
   // Use sharper NASA copies on wider, capable screens. Smaller originals remain
   // the default for phones, data-saving connections, and low-memory devices.
-  const preferHiRes = window.matchMedia?.('(min-width: 900px)')?.matches &&
+  const refreshQuality = window.EarthRefreshQuality = () => window.EarthPreferHiRes = Boolean(window.matchMedia?.('(min-width: 900px)')?.matches &&
     !navigator.connection?.saveData &&
     (navigator.deviceMemory == null || navigator.deviceMemory > 4) &&
-    (navigator.hardwareConcurrency == null || navigator.hardwareConcurrency > 4);
+    (navigator.hardwareConcurrency == null || navigator.hardwareConcurrency > 4));
+  refreshQuality();
   const clamp = (value, low = 0, high = 1) => Math.max(low, Math.min(high, Number.isFinite(value) ? value : low));
   const scale = (value, low, high) => clamp((value - low) / (high - low));
   // Default 25–28% remains gentle (~.04 gain), while the full slider now has
@@ -66,15 +72,15 @@
     // Percentile-like visual ranges are tuned to the bundled rendered assets.
     // The parameters are not temperature, canopy height, light output or ppm.
     if (id === 'ocean') {
-      // The bundled ocean film changes by roughly .002–.005 per 5 Hz frame in
-      // the curated regions. A .04 ceiling flattened nearly all audible motion.
-      const motion = scale(m.change, .001, .009);
+      // A soft response keeps real rendered motion responsive above the old
+      // hard ceiling. Change is normalized to a 0.2-second interval below.
+      const motion = m.change / (m.change + .008);
       return { pitch: note(scale(m.warmth, .006, .22), 0), filter: 380 + 1300 * scale(m.brightness, .16, .32), pulseHz: .22 + 1.4 * motion, activity: scale(m.chroma, .04, .24), motion };
     }
     if (id === 'ocean2') {
       // The beauty-pass palette is aesthetic. Map rendered blue/white contrast
       // and frame change, not a physical temperature or current-speed value.
-      const motion = scale(m.change, .001, .018);
+      const motion = m.change / (m.change + .015);
       return { pitch: note(scale(m.chroma, .15, .4), 0), filter: 420 + 1100 * scale(m.brightness, .18, .42), pulseHz: .2 + 1.25 * motion, activity: scale(m.chroma, .15, .4), motion };
     }
     if (id === 'night' || id === 'nightmap') return { pitch: note(scale(m.brightFraction, .01, .4), 2), filter: 900 + 1200 * scale(m.brightness, .06, .3), pulseHz: .3 + 2.1 * scale(m.brightFraction, .01, .4), activity: scale(m.brightFraction, 0, .35) };
@@ -100,6 +106,7 @@
       this.volume = .25;
       this.hostDuck = false;
       this.visualFocusId = null;
+      this.soloSourceId = null;
       this.serial = 0;
       this.timer = null;
       this.sleepTimer = null;
@@ -180,7 +187,11 @@
     }
 
     _createLayer(spec, weight) {
-      const source = SOURCES[spec.id];
+      // The guided comparison uses an extracted frame from the same NASA
+      // movie, but the regular night-map mapping and synthesizer unchanged.
+      const source = spec.demoFreeze && SOURCES[spec.id]
+        ? { ...SOURCES[spec.id], type: 'image', url: './assets/demo-black-marble-frame.png', hdUrl: null }
+        : SOURCES[spec.id];
       if (!source) throw new Error(`Unknown Earth Radio source: ${spec.id}`);
       const element = source.type === 'video' ? document.createElement('video') : document.createElement('img');
       if (source.type === 'video') {
@@ -194,6 +205,7 @@
         focus: { x: clamp(spec.focus?.x ?? .5), y: clamp(spec.focus?.y ?? .5) },
         element, canvas, context2d, voice: null, status: 'loading', error: null,
         metrics: null, sonic: null, previous: null, lastMediaTime: null,
+        usingHiRes: false,
         lastSampleAt: 0, frameHandle: null, ready: false, nextNote: 0, nextPluck: 0
       };
       layer.voice = layer.visualOnly ? null : this._voice(layer);
@@ -201,7 +213,7 @@
         layer.status = 'failed'; layer.error = 'This browser cannot analyze canvas frames.';
         return layer;
       }
-      element.onerror = () => this._fail(layer, 'The NASA media could not load.');
+      element.onerror = () => this._mediaError(layer, 'The NASA media could not load.');
       if (source.type === 'video') {
         element.onwaiting = () => this._waiting(layer);
         element.onstalled = () => this._waiting(layer);
@@ -212,7 +224,9 @@
       } else {
         element.onload = () => this._sample(layer, true);
       }
-      element.src = preferHiRes && source.hdUrl ? source.hdUrl : source.url;
+      // All devices analyze the same modest-size media. Detailed viewing is
+      // a separate, optional single display stream managed by the UI.
+      element.src = source.url;
       return layer;
     }
 
@@ -315,6 +329,27 @@
       layer.status = 'waiting'; layer.ready = false; this._fadeLayer(layer, 0, .04); this._notify();
     }
 
+    _playMedia(layer) {
+      const url = layer.element.src, serial = this.serial;
+      const rejected = error => {
+        if (serial === this.serial && layer.element.src === url) this._mediaError(layer, `Playback unavailable: ${error.message || error}`);
+      };
+      try { return Promise.resolve(layer.element.play()).catch(rejected); }
+      catch (error) { rejected(error); return Promise.resolve(); }
+    }
+
+    _mediaError(layer, message) {
+      if (layer.usingHiRes) {
+        layer.usingHiRes = false;
+        layer.previous = null; layer.lastMediaTime = null;
+        this._waiting(layer);
+        layer.element.src = layer.source.url;
+        if (layer.source.type === 'video' && this.playing && (!layer.visualOnly || layer.id === this.visualFocusId)) this._playMedia(layer);
+        return;
+      }
+      this._fail(layer, message);
+    }
+
     _fail(layer, message) {
       layer.status = 'failed'; layer.error = message; layer.ready = false; this._fadeLayer(layer, 0, .04);
       if (layer.source.type === 'video') layer.element.pause();
@@ -335,11 +370,11 @@
     _sample(layer, force = false) {
       if (layer.status === 'failed' || !layer.context2d) return;
       const source = layer.element;
+      const previousTime = layer.lastMediaTime;
       if (layer.source.type === 'video') {
         if (source.seeking || source.readyState < 2) return;
         if (layer.lastMediaTime !== null && (source.currentTime < layer.lastMediaTime - .05 || source.currentTime - layer.lastMediaTime > 1)) layer.previous = null;
         if (!force && source.currentTime === layer.lastMediaTime) return;
-        layer.lastMediaTime = source.currentTime;
       } else if (!source.complete || !source.naturalWidth) return;
       const now = performance.now();
       if (!force && now - layer.lastSampleAt < 1000 / (layer.source.hz || 5)) return;
@@ -347,6 +382,9 @@
         layer.context2d.drawImage(source, 0, 0, 96, 54);
         const pixels = layer.context2d.getImageData(0, 0, 96, 54).data;
         layer.metrics = measure(pixels, 96, 54, layer.focus, layer.previous, ['night','nightmap','lightning'].includes(layer.id) ? .2 : .62);
+        const delta = source.currentTime - previousTime;
+        if (layer.previous && previousTime !== null && delta > .02 && delta <= 1) layer.metrics.change *= .2 / delta;
+        layer.lastMediaTime = layer.source.type === 'video' ? source.currentTime : null;
         layer.previous = new Uint8ClampedArray(pixels);
         layer.sonic = soundValues(layer.id, layer.metrics);
         layer.lastSampleAt = now; layer.status = 'ready'; layer.error = null; layer.ready = true;
@@ -358,6 +396,7 @@
 
     _apply(layer) {
       if (!this.playing || !layer.ready || !layer.sonic || !this.context || layer.visualOnly) return;
+      if (!this._audible(layer)) { this._fadeLayer(layer, 0, .12); return; }
       const p = layer.sonic, v = layer.voice, now = this.context.currentTime;
       const track = this._track(), mode = track?.mode || 'flow';
       const root = 2 ** ((track?.root || 0) / 12);
@@ -398,7 +437,7 @@
       const track = this._track();
       // The shared groove reads the flat global maps only. GEDI pans its
       // camera and CO₂ orbits the planet; neither is a local rhythm sensor.
-      const ready = this.layers.filter(layer => layer.ready && layer.metrics && !layer.visualOnly && layer.id !== 'gedi' && layer.id !== 'co2');
+      const ready = this.layers.filter(layer => layer.ready && layer.metrics && this._audible(layer) && layer.id !== 'gedi' && layer.id !== 'co2');
       if (!ready.length) return null;
       const totals = { brightness: 0, chroma: 0, change: 0, brightFraction: 0, warmth: 0, oceanMotion: 0, lightningLight: 0 };
       let weight = 0, oceanWeight = 0;
@@ -450,8 +489,35 @@
 
     _drums() {
       if (!this.playing || !this.context || !this.percussionNoise || this.volume <= 0) return;
+      if (this.station?.demo) {
+        // A fixed clock and the normal night-map voice make the two image
+        // regions comparable without a second arrangement or backing track.
+        const layer = this.layers.find(item => this._audible(item) && item.ready);
+        if (!layer || !this._track()) return;
+        const now = this.context.currentTime;
+        if (!this.nextBeatTime || this.nextBeatTime < now - .24) this.nextBeatTime = now + .035;
+        for (let count = 0; this.nextBeatTime < now + .11 && count < 3; count++) {
+          this._glint(layer, this.nextBeatTime);
+          this.nextBeatTime += .24;
+        }
+        return;
+      }
       const track = this._track(), image = this._visualRhythm();
-      if (!track || !image || this.trackStart === null) { this.nextBeatTime = 0; return; }
+      if (!track || this.trackStart === null) { this.nextBeatTime = 0; return; }
+      if (!image) {
+        // GEDI and orbiting CO₂ are intentionally excluded from shared drum
+        // inputs. When one is isolated, keep its own notes on the same grid.
+        const solo = this.layers.find(layer => this.soloSourceId && this._audible(layer) && layer.ready);
+        if (!solo) { this.nextBeatTime = 0; return; }
+        const now=this.context.currentTime,stepSeconds=30/track.tempo;
+        if (!this.nextBeatTime || this.nextBeatTime < now-stepSeconds) this.nextBeatTime=now+.035;
+        for (let count=0;this.nextBeatTime<now+.11&&count<3;count++) {
+          this._motif(this.nextBeatTime);
+          if (solo.id==='gedi' && solo.metrics) this._wood(solo,this.nextBeatTime);
+          this.nextBeatTime+=stepSeconds;
+        }
+        return;
+      }
       const now = this.context.currentTime, stepSeconds = 30 / track.tempo;
       const density = this.station?.rhythm?.density ?? .7;
       if (!this.nextBeatTime || this.nextBeatTime < now - stepSeconds) {
@@ -481,8 +547,8 @@
         // Audio beat clock instead of drifting on the 50 ms UI tick.
         this._motif(this.nextBeatTime);
         for (const layer of this.layers) {
-          if ((layer.id === 'night' || layer.id === 'nightmap') && layer.ready && layer.metrics) this._glint(layer,this.nextBeatTime);
-          if (layer.id === 'gedi' && layer.ready && layer.metrics) this._wood(layer,this.nextBeatTime);
+          if ((layer.id === 'night' || layer.id === 'nightmap') && this._audible(layer) && layer.ready && layer.metrics) this._glint(layer,this.nextBeatTime);
+          if (layer.id === 'gedi' && this._audible(layer) && layer.ready && layer.metrics) this._wood(layer,this.nextBeatTime);
         }
         this.nextBeatTime += stepSeconds;
         this.beatStep++;
@@ -539,7 +605,7 @@
       if (now < this.nextMotif) return;
       const beat = 60 / track.tempo;
       this.nextMotif = now + beat * (track.mode === 'pulse' ? .5 : track.mode === 'air' ? 1.5 : 3);
-      const ready = this.layers.filter(layer => layer.ready && layer.sonic && layer.status === 'ready');
+      const ready = this.layers.filter(layer => this._audible(layer) && layer.ready && layer.sonic && layer.status === 'ready');
       if (!ready.length) return;
       ready.sort((a,b)=>(track.mix?.[b.id] || 1)*b.weight-(track.mix?.[a.id] || 1)*a.weight);
       const layer = ready[this.motifStep % Math.min(ready.length, track.mode === 'flow' ? 1 : 2)];
@@ -585,8 +651,7 @@
         if (layer.source.type === 'video') {
           if (layer.visualOnly && layer.id !== this.visualFocusId) continue;
           // Capture each invocation during the same click gesture as AudioContext.resume.
-          try { resumes.push(layer.element.play().catch(error => { if (serial === this.serial) this._fail(layer, `Playback unavailable: ${error.message || error}`); })); }
-          catch (error) { this._fail(layer, `Playback unavailable: ${error.message || error}`); }
+          resumes.push(this._playMedia(layer));
           this._scheduleFrames(layer, serial);
         } else if (layer.element.complete && layer.element.naturalWidth) this._sample(layer, true);
         if (layer.ready) this._apply(layer);
@@ -656,7 +721,7 @@
           setTimeout(() => { for (const node of Object.values(voice)) if (node) try { node.disconnect(); } catch (_) {} }, 180);
         }
       }
-      this.layers = []; this.station = null; this.bus = null;
+      this.layers = []; this.station = null; this.bus = null; this.soloSourceId = null;
       this.trackIndex = 0; this.trackElapsedAccum = 0; this.trackStart = null; this.nextMotif = 0; this.motifStep = 0; this.nextBeatTime = 0; this.beatStep = 0; this.lastKickAt = -1;
       clearTimeout(this.sleepTimer);
       const serial = this.serial;
@@ -675,6 +740,28 @@
       if (this.master && this.context) this.master.gain.setTargetAtTime(this.playing ? outputGain(this.volume) * (this.hostDuck ? .25 : 1) : 0, this.context.currentTime, .12);
     }
 
+    _audible(layer) { return !layer.visualOnly && (!this.soloSourceId || this.soloSourceId === layer.id); }
+
+    setSolo(sourceId = null) {
+      if (sourceId && !this.layers.some(layer => layer.id === sourceId && !layer.visualOnly)) return false;
+      if (this.soloSourceId === sourceId) return true;
+      this.soloSourceId = sourceId;
+      if (this.context) {
+        const now = this.context.currentTime;
+        // Notes already in flight are ramped out; new notes use the new mix.
+        for (const envelope of this.pendingNotes) {
+          envelope.gain.cancelScheduledValues(now);
+          envelope.gain.setTargetAtTime(0, now, .025);
+        }
+        for (const layer of this.layers) {
+          layer.nextNote = 0; layer.nextPluck = 0;
+          if (this._audible(layer)) this._apply(layer);
+          else this._fadeLayer(layer, 0, .12);
+        }
+      }
+      this._notify(); return true;
+    }
+
     setVisualFocus(sourceId) {
       if (this.visualFocusId === sourceId) return;
       this.visualFocusId = sourceId;
@@ -685,8 +772,7 @@
           if (layer.frameHandle !== null && layer.element.cancelVideoFrameCallback) layer.element.cancelVideoFrameCallback(layer.frameHandle);
           layer.frameHandle = null;
         } else if (this.playing) {
-          try { layer.element.play().catch(error => this._fail(layer, `Playback unavailable: ${error.message || error}`)); }
-          catch (error) { this._fail(layer, `Playback unavailable: ${error.message || error}`); }
+          this._playMedia(layer);
           this._scheduleFrames(layer, this.serial);
         }
       }
@@ -697,7 +783,7 @@
       const layer = this.layers.find(item => item.id === sourceId);
       if (!layer) return false;
       layer.focus = { x: clamp(Number(x)), y: clamp(Number(y)) };
-      layer.previous = null; this._sample(layer, true); this._notify(); return true;
+      layer.previous = null; layer.nextNote = 0; this._sample(layer, true); this._notify(); return true;
     }
 
     seek(sourceId, normalizedPosition) {
@@ -719,7 +805,7 @@
     getState() {
       const track = this._track();
       return {
-        stationId: this.station?.id || null, playing: this.playing, volume: this.volume,
+        stationId: this.station?.id || null, playing: this.playing, volume: this.volume, soloSourceId: this.soloSourceId,
         contextState: this.context?.state || 'uninitialized',
         track: track ? { id:track.id, title:track.title, description:track.description, mode:track.mode, duration:track.duration } : null,
         trackIndex:this.trackIndex, trackCount:this.station?.tracks?.length || 0,
@@ -732,5 +818,6 @@
     }
   }
 
+  window.EarthImageSound = { measure, soundValues };
   window.EarthAudio = EarthAudio;
 })();

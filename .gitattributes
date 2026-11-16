@@ -1,0 +1,10 @@
+# Normalize source text while preserving bundled media bytes.
+* text=auto eol=lf
+*.mp3 -text
+*.mp4 -text
+*.ttf -text
+*.woff2 -text
+*.png -text
+*.jpg -text
+*.jpeg -text
+*.webp -text

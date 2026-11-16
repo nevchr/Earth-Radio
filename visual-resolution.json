@@ -1,0 +1,215 @@
+{
+  "ocean": {
+    "width": 2048,
+    "height": 1024,
+    "duration": "66.733333",
+    "scene_correlations": [
+      0.99888,
+      0.99869,
+      0.99874
+    ],
+    "bytes": 23698351,
+    "source_url": "https://svs.gsfc.nasa.gov/vis/a000000/a003900/a003912/ecco2_sst_flow.mp4",
+    "start": 0,
+    "sha256": "c147bfe6c2fdd1855ea0e1eedbc3cbdc26b5b3aadbe12c98b64aff09801cd112",
+    "asset": "ocean-hd.mp4",
+    "poster": "ocean-poster-hd.jpg",
+    "fps": 15
+  },
+  "ocean2": {
+    "width": 2048,
+    "height": 1024,
+    "duration": "24.133008",
+    "scene_correlations": [
+      0.99972,
+      0.99971,
+      0.9997
+    ],
+    "bytes": 14096621,
+    "source_url": "https://svs.gsfc.nasa.gov/vis/a000000/a005500/a005505/fast_global_small.mp4",
+    "start": 0,
+    "sha256": "f96e97c2ab23d384089937cd879019d823a7d35b157640b02b7815ca0e70e44c",
+    "asset": "ocean2-hd.mp4",
+    "poster": "ocean2-poster-hd.jpg",
+    "fps": 15
+  },
+  "night": {
+    "width": 4096,
+    "height": 1152,
+    "duration": "9.083333",
+    "scene_correlations": [
+      0.99873,
+      0.99871,
+      0.99878
+    ],
+    "bytes": 1151046,
+    "source_url": "https://svs.gsfc.nasa.gov/vis/a000000/a005300/a005313/nightlights_flat_series_and_change_wZooms_13_EIC_2160p30_h265.mp4",
+    "start": 0,
+    "sha256": "eef7031571cafdfaf522cc7e2fc61b8920a2fbb5e4675dcabead4f12580545fc",
+    "asset": "night-hd.mp4",
+    "poster": "nightlights-poster-hd.jpg",
+    "fps": 24
+  },
+  "nightmap": {
+    "width": 4096,
+    "height": 2048,
+    "duration": "29.000000",
+    "scene_correlations": [
+      0.99245,
+      0.99261,
+      0.99252
+    ],
+    "bytes": 4541606,
+    "source_url": "https://svs.gsfc.nasa.gov/vis/a000000/a005400/a005475/nightlights_2012-2024_KSC_SOS_04_plus2_4096x2048_30p_h264.mp4",
+    "start": 0,
+    "sha256": "a942f2f47de7f0384af55a6ef3902d3996753f526d78e1d3d1f739843f567884",
+    "asset": "nightmap-hd.mp4",
+    "poster": "nightmap-poster-hd.jpg",
+    "fps": 15
+  },
+  "lightning": {
+    "width": 4096,
+    "height": 2048,
+    "duration": "22.000000",
+    "scene_correlations": [
+      0.99502,
+      0.99514,
+      0.99576
+    ],
+    "bytes": 14976256,
+    "source_url": "https://svs.gsfc.nasa.gov/vis/a000000/a005000/a005011/iss_lightning_sos_yearly_07312023_2048p60.mp4",
+    "start": 0,
+    "sha256": "063c78fd2455b4b7a9d6c25b01767bd652526dade83f75ed236aa75072ff9729",
+    "asset": "lightning-hd.mp4",
+    "poster": "lightning-poster-hd.jpg",
+    "fps": 15
+  },
+  "pm25": {
+    "width": 4096,
+    "height": 2048,
+    "duration": "22.000000",
+    "scene_correlations": [
+      0.99796,
+      0.99787,
+      0.99808
+    ],
+    "bytes": 14326034,
+    "source_url": "https://svs.gsfc.nasa.gov/vis/a000000/a005500/a005518/AirQuality_PM2.5_Layer_4096x2048.mp4",
+    "start": 0,
+    "sha256": "3918c2ab9865a1591537a7bda0608ff8f5c218a2c3a8bc16b323bf288a527362",
+    "asset": "pm25-hd.mp4",
+    "poster": "pm25-poster-hd.jpg",
+    "fps": 15
+  },
+  "gedi": {
+    "width": 3840,
+    "height": 2160,
+    "duration": "23.333008",
+    "scene_correlations": [
+      0.99944,
+      0.99507,
+      0.99617
+    ],
+    "bytes": 17831165,
+    "source_url": "https://svs.gsfc.nasa.gov/vis/a000000/a004900/a004950/GEDI_CA_w_colorbar_2160p30.mp4",
+    "start": 0,
+    "sha256": "465e3135b8a7062159336a725485bbd621fcfd49c6b29758d6e179938c3097d8",
+    "asset": "gedi-hd.mp4",
+    "poster": "gedi-poster-hd.jpg",
+    "fps": 24
+  },
+  "co2": {
+    "width": 3840,
+    "height": 2160,
+    "duration": "39.208333",
+    "scene_correlations": [
+      0.99835,
+      0.99851,
+      0.99857
+    ],
+    "bytes": 20157877,
+    "source_url": "https://svs.gsfc.nasa.gov/vis/a000000/a005100/a005196/dyamondPointCloud_12-1-2023b_dyamond_co2_anim_globe_orbit_2160p30.mp4",
+    "start": 0,
+    "sha256": "ba0f571c399a1a37528f1e535406fbf7d8f5a7cdd0d606c948c61eed4f132908",
+    "asset": "co2-hd.mp4",
+    "poster": "co2-poster-hd.jpg",
+    "fps": 24
+  },
+  "film-gulf": {
+    "width": 1920,
+    "height": 1080,
+    "duration": "22.000000",
+    "scene_correlations": [
+      0.99883,
+      0.99837,
+      0.99784
+    ],
+    "bytes": 17185116,
+    "source_url": "https://svs.gsfc.nasa.gov/vis/a000000/a005400/a005425/perpetual_ocean2_CLOSE_093_clean_noDate_1080p30.mp4",
+    "start": 218,
+    "sha256": "ae05e172d95f9b3bd83f784fccb283099c953fcd92e8bff159559eac3c9aefd0",
+    "asset": "oceanfilm-gulf-hd.mp4",
+    "poster": "oceanfilm-gulf-poster-hd.jpg",
+    "fps": 24
+  },
+  "film-japan": {
+    "width": 1920,
+    "height": 1080,
+    "duration": "22.000000",
+    "scene_correlations": [
+      0.99992,
+      0.9996,
+      0.9991
+    ],
+    "bytes": 17104920,
+    "source_url": "https://svs.gsfc.nasa.gov/vis/a000000/a005400/a005425/perpetual_ocean2_CLOSE_093_clean_noDate_1080p30.mp4",
+    "start": 88,
+    "sha256": "422c6bf312de2137c28ca097394e2f07bfc800704b6a7049146de3cd24edf88a",
+    "asset": "oceanfilm-japan-hd.mp4",
+    "poster": "oceanfilm-japan-poster-hd.jpg",
+    "fps": 24
+  },
+  "film-agulhas": {
+    "width": 1920,
+    "height": 1080,
+    "duration": "22.000000",
+    "scene_correlations": [
+      0.99948,
+      0.99918,
+      0.99896
+    ],
+    "bytes": 17009497,
+    "source_url": "https://svs.gsfc.nasa.gov/vis/a000000/a005400/a005425/perpetual_ocean2_CLOSE_093_clean_noDate_1080p30.mp4",
+    "start": 170,
+    "sha256": "54ed697605cc237a6d4cf7f93939aeddd5013d0e0c0abcd2c2286f02d370b55c",
+    "asset": "oceanfilm-agulhas-hd.mp4",
+    "poster": "oceanfilm-agulhas-poster-hd.jpg",
+    "fps": 24
+  },
+  "river": {
+    "width": 1920,
+    "height": 1080,
+    "duration": "23.000000",
+    "scene_correlations": [
+      0.99634,
+      0.99965,
+      0.9992
+    ],
+    "bytes": 12097825,
+    "source_url": "https://svs.gsfc.nasa.gov/vis/a000000/a004900/a004960/atmos_rivers_narrated_HD.webm",
+    "start": 100,
+    "sha256": "e5bb8fd5ca0d3993b8eb6e4894b06baa1e883eee048dc65ee077ce32f0ab856b",
+    "asset": "river-hd.mp4",
+    "poster": "river-poster-hd.jpg",
+    "fps": 24
+  },
+  "aerosol": {
+    "width": 7680,
+    "height": 4320,
+    "asset": "aerosol-hd.png",
+    "poster": "aerosol-hd.png",
+    "bytes": 24607175,
+    "source_url": "https://svs.gsfc.nasa.gov/vis/a000000/a005600/a005669/Aerosols_2025-08-19T20_00_00_7680x4320.png",
+    "sha256": "b6fe28ce3dfd0020121ff55ea583f47c0811aeb7288e9c0f848fd9d17971aaba"
+  }
+}

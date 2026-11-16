@@ -1,0 +1,72 @@
+{
+  "description": "Earth Radio local media and AI assistance provenance",
+  "development": "Codex assisted coding, design research and review. Claude independently audited an older snapshot, as recorded in AUDIT.md.",
+  "narration": "Twelve pre-generated ElevenLabs host narration clips using four synthetic voices, normalized and limited in the existing build. MP3 tags were added with stream copy; the encoded audio hashes below matched before and after.",
+  "music": "Procedural Web Audio synthesis at runtime from rendered NASA image pixels; no generated audio service is called for music.",
+  "nasa_media": "NASA-provided source imagery, resized, clipped, compressed and projected as documented in README.md and visual-resolution.json. Not AI-generated. NASA does not endorse Earth Radio.",
+  "demo_frame": "assets/demo-black-marble-frame.png is an extracted frame at 5 seconds of the bundled assets/nightmap.mp4 (NASA SVS 5475); the video itself is a compressed excerpt. No generative modification.",
+  "licenses": "The Apache 2.0 software license does not cover NASA media, ElevenLabs audio or OFL fonts; see README.md for the separate credits and terms.",
+  "host_clips": [
+    {
+      "file": "assets/hosts/california.mp3",
+      "voice": "Eve",
+      "encoded_audio_sha256": "b591e5d1636dde69db686a49df1642765406fc2b6cc05029b102a0b506603cab"
+    },
+    {
+      "file": "assets/hosts/gulf-stream.mp3",
+      "voice": "Udem",
+      "encoded_audio_sha256": "fd6a8e467cb9d5be26e4435766b155efedca2fe2db84a237d52167673b792a88"
+    },
+    {
+      "file": "assets/hosts/erin-atlantic.mp3",
+      "voice": "Kathy",
+      "encoded_audio_sha256": "d9bde9d3ba8afb2360cb8a5b26dddb952e0f0ba69206c95fe87d5ed1a94f0889"
+    },
+    {
+      "file": "assets/hosts/mediterranean.mp3",
+      "voice": "Kade",
+      "encoded_audio_sha256": "3ff0fc56f8bdc5b3160087a60aa0c146af26921c1540ad200e66271be03bb28b"
+    },
+    {
+      "file": "assets/hosts/etna.mp3",
+      "voice": "Eve",
+      "encoded_audio_sha256": "772556b000d47b7d72cdd6db49d477d0a0a54df1b05c224b643c1290d4628855"
+    },
+    {
+      "file": "assets/hosts/sahara.mp3",
+      "voice": "Udem",
+      "encoded_audio_sha256": "9e5e878458356f5848aeed6d60d1758950c0649ab140141fb44b6922bb233062"
+    },
+    {
+      "file": "assets/hosts/bay-bengal.mp3",
+      "voice": "Kathy",
+      "encoded_audio_sha256": "4e48ccbd11db664421e8577bbc1a86961125c7fe7da9536ae69feef11b4a3f6a"
+    },
+    {
+      "file": "assets/hosts/java-offshore.mp3",
+      "voice": "Kade",
+      "encoded_audio_sha256": "4e92633c3a32c8e336a6c035e9d51df9aa12a2266caed1d5ee2cb47afd2114fd"
+    },
+    {
+      "file": "assets/hosts/japan.mp3",
+      "voice": "Eve",
+      "encoded_audio_sha256": "e607044366ab30d82eecf3a0e7740e3201c8068dea388ff61333cd6a04c5afa9"
+    },
+    {
+      "file": "assets/hosts/agulhas.mp3",
+      "voice": "Udem",
+      "encoded_audio_sha256": "d91c37b71187c9624092730b6eec54445bce66496b600e60398ecf1aa3fa5c58"
+    },
+    {
+      "file": "assets/hosts/brazil-atlantic.mp3",
+      "voice": "Kathy",
+      "encoded_audio_sha256": "749e5c073220b368cbd9fdadc4e3524b05dba8582da5cf9fb0cab581e47ec41d"
+    },
+    {
+      "file": "assets/hosts/hawaii.mp3",
+      "voice": "Kade",
+      "encoded_audio_sha256": "2aabebf531d955bd5eec2971643e354400015a14723ea20cf35b8f7b636f2a0d"
+    }
+  ],
+  "typography": "User-supplied Helvetica Regular and Bold from helvetica-255.zip. Original font files copied without modification for this local preview. See assets/fonts/Helvetica-NOTICE.txt; no license document was included in the archive."
+}

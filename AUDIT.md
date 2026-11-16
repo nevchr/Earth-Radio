@@ -143,7 +143,46 @@ We compared the bundled NASA assets with their SVS source pages. [Older ocean](h
 - The selected flat-map visualization now has higher visual weight over Blue Marble. EIC and Black Marble night-light pixels receive a thresholded brightness lift; historical lightning has a smaller lift. The globe display changes intensity only, not pixel positions, source playback, or sonification inputs. The source card remains an original NASA-frame comparison. Brightest rendered pixels may clip on the globe, so this is an interpretive view, not a calibrated scientific scale.
 - The Canvas 2D fallback precomputes the byte-level lift once per captured source frame, instead of per rotated globe pixel; the WebGL path uses the same display parameters in its shader. Managed Chromium preview visually checked ocean currents, EIC night lights, PM2.5, and Black Marble; the latter redraw was about 43 ms after the optimization versus about 60 ms during the first per-pixel implementation. Syntax checks and the playlist/audio regression passed. Physical-phone and WebGL output remain unverified.
 
+## Local listening-clarity iteration
+
+This local iteration started from the source commit `4fbf22182eca09450d363ab4d72d3a5ed58b4f7b`, which matched the latest saved version of the linked Earth Radio Site when checked. No site publication or access change was performed.
+
+- The receiver now distinguishes the viewed source and period from the available audible inputs. Layer isolation fades other continuous voices and already-scheduled notes, filters shared rhythm and motif inputs, and restores the full mix; camera-only context cannot be selected as sound. A source switch by itself leaves the mix alone.
+- The Guide compares two actual 9 × 9 sampling windows on the same frozen 2014 Black Marble frame extracted from the bundled NASA video. In desktop Chrome, window A measured 0/81 pixels and B 62/81 above the engine's rendered-brightness threshold. The same night-map mapping produced approximately 523 Hz and 1047 Hz pitches, respectively. The browser's actual audio graph showed a much larger signal for B. These are image properties and synthesized output, not physical measurements or evidence of perceived educational benefit.
+- The outlined sampling rectangle follows the actual clipped window on the 96 × 54 analysis canvas. Equirectangular and two-panel views have distinct scope explanations; approximate and moving-camera views do not claim precise geographic bounds. Frame descriptions distinguish unloaded, loading, paused, playing, still and simulated failure states. Song progress remains separate from NASA visual timelines.
+- The AI and source-media disclosures were expanded in the app, README, and `media-provenance.json`. All 12 ElevenLabs narration clips received ID3 attribution using stream copy. `node tests/verify-host-provenance.cjs` checked every tag and matched the encoded audio packet hashes recorded before and after the metadata changes.
+- `node tests/playlist.cjs` passed focused engine checks, including isolation, visual-only rejection and restoration. The local Chrome browser journey checked cold load without station-video or host-audio requests; play/pause/resume, track and song seeking, source switching, host skip/replay/mute, the isolated gain state, comparison output, comparison pause/replay, station and source-time restoration, frame-state messages, and the README link. At 1440 × 900 and reduced-motion 390 × 844 and 320 × 700 viewports it checked keyboard guide controls, focus return and horizontal overflow. Automated axe checks reported no violations within the guide and receiver during that run. These checks do not establish real-world accessibility or audio quality.
+- Physical phones, other browser engines, human listening, assistive-technology sessions and educational evaluation were not tested. Approximate geographic registration and third-party media rights remain subject to the existing limitations and credits in the README. The earlier observation that About and Sources drawers could use stronger focus handling remains outside this focused iteration.
+- A subsequent local edit removed GEDI forest height from the selectable view icons, source viewer and Next view rotation while retaining it as an explicitly labeled, isolatable sound-only input and preserving its NASA credit. The Chrome journey verified the remaining view order, keyboard isolation and full-mix return, and that the hidden GEDI media stayed connected and advanced during playback. No publication was performed.
+
 ## Unified typography
 
 - Replaced the mixed DM Sans/Fraunces type system with one upright Newsreader variable font for interface text, controls, headings, and canvas-drawn station names. Its optical size axis adapts to small text, and small labels were enlarged where practical. No italic face is loaded or used. Newsreader is provided by Production Type under the SIL Open Font License 1.1; the notice is bundled.
 - The original Res Minevia requested by the owner was a personal-use demo; its designer requires a webfont license for hosted embedding. The owner chose a similar freely licensed font instead.
+
+## Finishing follow-up to the current-snapshot audit
+
+The local audio, resize/layout, source-state, host, focus and wording follow-up
+is recorded in [FINISHING_QA.md](FINISHING_QA.md), including the real-frame motion
+tests and Chrome evidence. Sound now uses canonical standard media on all
+devices, with one optional detailed display stream. This supersedes the earlier
+automatic-HD playback policy. No publication or URL changes were made.
+
+## Helvetica and spacing pass
+
+The user's `helvetica-255.zip` supplied Helvetica Regular and Bold. The two
+unchanged TTF files are embedded locally and replace Newsreader in the entire
+interface and canvas globe labels. Helvetica-specific type sizes, line heights,
+tracking, panel insets, station rows, source captions, dialogs and mix-control
+spacing were adjusted. Font origin and the absent archive license document are
+recorded in `assets/fonts/Helvetica-NOTICE.txt`.
+
+Chrome's platform-font inspection confirmed custom Helvetica / Helvetica-Bold,
+rather than a fallback. Compact/expanded players, Explore, Guide, About and
+Sources were inspected at desktop, narrow and short viewport sizes; no page or
+button-text horizontal overflow was found. All 12 station titles were checked
+at 320, 390 and 1440 pixels wide for wrapping, separation from the track heading
+and transport space. The existing finishing and listening journey regressions
+passed, including keyboard and receiver/Guide axe checks. A detailed-video
+play/pause AbortError race exposed by the layout checks was also corrected.
+Physical-device and other-browser limits remain unchanged. Nothing was published.

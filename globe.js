@@ -18,8 +18,8 @@
     let frame=0,disposed=false,pins=[],cameraMotion=null,overlayTimer=null,lastTextureKey='';
     let overlaysEnabled=true,visualPlaying=false,activeMedia=null,activeKind='ocean',activeLabel='',activeProjection='approximate';
     let activePixels=null,nightPoints=[],lastActiveTime=-1,lastOverlayCapture=0,activeFrameCaptured=false,activeFrameSerial=0;
-    const leanDevice=(window.navigator?.deviceMemory&&window.navigator.deviceMemory<=4)||(window.navigator?.hardwareConcurrency&&window.navigator.hardwareConcurrency<=4)||window.matchMedia?.('(max-width: 760px)')?.matches;
-    const overlayInterval=leanDevice?420:260;
+    const isLean=()=>Boolean(navigator.connection?.saveData||(navigator.deviceMemory&&navigator.deviceMemory<=4)||(navigator.hardwareConcurrency&&navigator.hardwareConcurrency<=4)||window.matchMedia?.('(max-width: 760px)')?.matches);
+    let leanDevice=isLean(),overlayInterval=leanDevice?420:260,wasMobile=null,layout=null,earthFallback=false;
     const mediaCanvas=document.createElement('canvas');mediaCanvas.width=640;mediaCanvas.height=320;
     const mediaCtx=mediaCanvas.getContext('2d',{willReadFrequently:true});
     const reducedMotion=()=>window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches||false;
@@ -76,6 +76,8 @@
       let earthReady=false,nasaReady=false;
       function upload(item,source){gl.bindTexture(gl.TEXTURE_2D,item);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,source);}
       return {
+        maxTextureSize:gl.getParameter(gl.MAX_TEXTURE_SIZE),
+        maxRenderSize:Math.min(gl.getParameter(gl.MAX_RENDERBUFFER_SIZE),...gl.getParameter(gl.MAX_VIEWPORT_DIMS)),
         get overlayReady(){return nasaReady;},
         uploadEarth(source){try{upload(earth,source);earthReady=true;return true;}catch(_error){return false;}},
         uploadOverlay(source){try{upload(nasa,source);nasaReady=true;return true;}catch(_error){nasaReady=false;return false;}},
@@ -104,12 +106,46 @@
     gpu=createGpu();
     gpuCanvas.addEventListener('webglcontextlost',event=>{event.preventDefault();gpu=null;activeFrameCaptured=false;schedule();});
     gpuCanvas.addEventListener('webglcontextrestored',()=>{gpu=createGpu();if(texture.complete&&texture.naturalWidth)gpu?.uploadEarth(texture);activeFrameCaptured=false;schedule();});
-    texture.onload=()=>{gpu?.uploadEarth(texture);try{const source=document.createElement('canvas');source.width=texture.naturalWidth;source.height=texture.naturalHeight;const c=source.getContext('2d',{willReadFrequently:true});c.drawImage(texture,0,0);texturePixels=c.getImageData(0,0,source.width,source.height).data;textureWidth=source.width;textureHeight=source.height;}catch(error){console.warn('Earth texture cannot be read; using globe fallback.',error);}schedule();};
-    texture.onerror=()=>{console.warn('Earth texture unavailable; using globe fallback.');schedule();};
-    texture.src='./assets/bluemarble-2048.png';
-    document.fonts?.load('600 12px Newsreader').then(schedule).catch(()=>{});
-    function geometry(){const mobile=w<760;centerX=w*(mobile?.5:.5);centerY=h*(mobile?.285:.51);radius=Math.min(w*(mobile?.445:.36),h*(mobile?.245:.42))*zoom;}
-    function resize(){if(disposed)return;const rect=canvas.getBoundingClientRect();w=Math.max(1,rect.width);h=Math.max(1,rect.height);dpr=Math.min(window.devicePixelRatio||1,2);canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);geometry();schedule();}
+    texture.onload=()=>{
+      if(disposed)return;
+      gpu?.uploadEarth(texture);
+      canvas.dataset.earthTexture=`${texture.naturalWidth}x${texture.naturalHeight}`;
+      // Keep a bounded software copy instead of reading back the full desktop
+      // map. The GPU samples the original NASA image at its native resolution.
+      try{
+        const source=document.createElement('canvas');
+        source.width=Math.min(2048,texture.naturalWidth);
+        source.height=Math.round(source.width*texture.naturalHeight/texture.naturalWidth);
+        const c=source.getContext('2d',{willReadFrequently:true});
+        c.drawImage(texture,0,0,source.width,source.height);
+        texturePixels=c.getImageData(0,0,source.width,source.height).data;
+        textureWidth=source.width;textureHeight=source.height;
+      }catch(error){console.warn('Earth texture cannot be read; using globe fallback.',error);}
+      lastTextureKey='';schedule();
+    };
+    texture.onerror=()=>{
+      if(disposed)return;
+      if(!texture.src.endsWith('/bluemarble-2048.png')){earthFallback=true;texture.src='./assets/bluemarble-2048.png';return;}
+      console.warn('Earth texture unavailable; using globe fallback.');schedule();
+    };
+    function refreshEarth(){const detailed=!earthFallback&&!leanDevice&&w>=900&&gpu?.maxTextureSize>=5400;const url=detailed?'bluemarble-5400.jpg':'bluemarble-2048.png';if(!texture.src.endsWith('/'+url))texture.src='./assets/'+url;}
+    document.fonts?.load('700 12px Helvetica').then(schedule).catch(()=>{});
+    function geometry(){centerX=layout?.x??w*.5;centerY=layout?.y??h*.51;radius=(layout?.radius??Math.min(w*.36,h*.42))*zoom;canvas.dataset.geometry=JSON.stringify({x:centerX,y:centerY,radius});}
+    function resize(){
+      if(disposed)return;const rect=canvas.getBoundingClientRect();w=Math.max(1,rect.width);h=Math.max(1,rect.height);
+      const mobile=w<=760;
+      if(wasMobile!==null&&wasMobile!==mobile){cameraMotion=null;zoom=mobile?1.08:1.18;}
+      wasMobile=mobile;leanDevice=isLean();overlayInterval=leanDevice?420:260;canvas.dataset.quality=leanDevice?'lean':'detailed';refreshEarth();
+      layout=null;
+      if(mobile){
+        const short=h<=550,player=document.getElementById('playerDrawer'),stationsPanel=document.getElementById('stationDrawer');
+        const sheet=[player,stationsPanel].find(panel=>panel&&!panel.hidden);
+        const top=short?114:120,bottom=short?h-68:sheet?Math.max(top+60,sheet.getBoundingClientRect().top-10):h-68;
+        const width=short?w*.49:w;
+        layout={x:width/2,y:(top+bottom)/2,radius:Math.max(28,Math.min(width*.43,(bottom-top)*.46))/1.08};
+      }
+      dpr=Math.min(window.devicePixelRatio||1,2);canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);geometry();lastTextureKey='';schedule();
+    }
     function project(lat,lon){const a=(lon-centerLon)*DEG,b=lat*DEG,c=centerLat*DEG;const z=Math.sin(c)*Math.sin(b)+Math.cos(c)*Math.cos(b)*Math.cos(a);return {x:centerX+radius*Math.cos(b)*Math.sin(a),y:centerY-radius*(Math.cos(c)*Math.sin(b)-Math.sin(c)*Math.cos(b)*Math.cos(a)),z};}
     function capture(media,kind){
       if(!mediaCtx||!media)return null;
@@ -118,7 +154,9 @@
       try{
         const sourceWidth=video?media.videoWidth:media.naturalWidth,sourceHeight=video?media.videoHeight:media.naturalHeight;
         const flatSourceWidth=kind==='night'?sourceWidth/2:sourceWidth;
-        const mapWidth=leanDevice?640:Math.max(640,Math.min(1536,Math.round(flatSourceWidth/2)*2)),mapHeight=mapWidth/2;
+        const mapLimit=gpu?Math.min(4096,gpu.maxTextureSize):1536;
+        const mapWidth=leanDevice?640:Math.max(640,Math.min(mapLimit,Math.round(flatSourceWidth/2)*2)),mapHeight=mapWidth/2;
+        canvas.dataset.overlayTexture=`${mapWidth}x${mapHeight}`;
         if(mediaCanvas.width!==mapWidth){mediaCanvas.width=mapWidth;mediaCanvas.height=mapHeight;}
         mediaCtx.clearRect(0,0,mapWidth,mapHeight);
         // The EIC night-light clip contains two 640×360 world-map panels.
@@ -272,18 +310,20 @@
       if(textureKey!==lastTextureKey){
         const textureStarted=performance.now();
         const displayPixels=radius*2*dpr;
-        const size=Math.round(clamp(displayPixels*1.05,leanDevice?260:380,leanDevice?640:1024));
+        const renderLimit=leanDevice?640:gpu?Math.min(2048,gpu.maxRenderSize):1024;
+        const size=Math.round(clamp(displayPixels*1.05,leanDevice?260:380,renderLimit));
         const style=displayStyle(activeKind);
         if(gpu?.render(size,overlaysEnabled&&activeFrameCaptured,style.strength,style.floor,style.gain))usingGpu=true;
         else{usingGpu=false;renderTexture();}
         canvas.dataset.renderer=usingGpu?'webgl':'canvas2d';
+        canvas.dataset.renderSize=String(usingGpu?size:sphere.width);
         canvas.dataset.textureMs=(performance.now()-textureStarted).toFixed(1);
         lastTextureKey=textureKey;
       }
       ctx.save();ctx.beginPath();ctx.arc(centerX,centerY,radius,0,Math.PI*2);ctx.clip();ctx.drawImage(usingGpu?gpuCanvas:sphere,centerX-radius,centerY-radius,radius*2,radius*2);
       const limb=ctx.createRadialGradient(centerX-radius*.35,centerY-radius*.43,radius*.2,centerX,centerY,radius*1.03);limb.addColorStop(0,'#bcf0e318');limb.addColorStop(.7,'#00000000');limb.addColorStop(1,'#04131bb0');ctx.fillStyle=limb;ctx.fillRect(centerX-radius,centerY-radius,radius*2,radius*2);drawNightPoints();ctx.restore();
       ctx.strokeStyle='#83b9ee73';ctx.lineWidth=1.3;ctx.beginPath();ctx.arc(centerX,centerY,radius,0,Math.PI*2);ctx.stroke();
-      pins=[];const mobile=w<760;
+      pins=[];const mobile=w<=760;
       if(!mobile&&['river','film-gulf','film-japan','film-agulhas'].includes(activeKind)&&signalWindow){
         const station=stations.find(item=>item.id===selectedId),point=station&&project(station.lat,station.lon);
         if(point?.z>.08){
@@ -293,11 +333,15 @@
           ctx.beginPath();ctx.moveTo(point.x,point.y);ctx.quadraticCurveTo((point.x+endX)/2,Math.min(point.y,endY)-24,endX,endY);ctx.stroke();ctx.setLineDash([]);
         }
       }
-      for(const station of stations){if(!Number.isFinite(station.lat)||!Number.isFinite(station.lon))continue;const p=project(station.lat,station.lon);if(p.z<.04)continue;pins.push({id:station.id,x:p.x,y:p.y});const active=station.id===selectedId;
+      const labelBoxes=[];
+      for(const station of [...stations].sort((a,b)=>Number(b.id===selectedId)-Number(a.id===selectedId))){if(!Number.isFinite(station.lat)||!Number.isFinite(station.lon))continue;const p=project(station.lat,station.lon);if(p.z<.04)continue;pins.push({id:station.id,x:p.x,y:p.y});const active=station.id===selectedId;
         if(active&&overlaysEnabled&&!reducedMotion()&&p.z>.1){const beat=clamp(getBeatPulse(),0,1);if(beat>.015){ctx.strokeStyle=`rgba(69,157,255,${(beat*.5).toFixed(3)})`;ctx.lineWidth=1.3;ctx.beginPath();ctx.arc(p.x,p.y,12+22*(1-beat),0,Math.PI*2);ctx.stroke();}}
         ctx.fillStyle=active?'#4a9fff35':'#7db8ef2a';ctx.beginPath();ctx.arc(p.x,p.y,active?22:17,0,Math.PI*2);ctx.fill();
         ctx.fillStyle=active?'#59aaff':'#96caff';ctx.strokeStyle='#17232c';ctx.lineWidth=2;ctx.beginPath();ctx.arc(p.x,p.y,active?7:5,0,Math.PI*2);ctx.fill();ctx.stroke();
-        if(!mobile&&(active||p.z>.4)){const label=station.title||station.id;ctx.font='600 12px Newsreader, Georgia, serif';const width=ctx.measureText(label).width;const x=p.x+12+width>w-22?p.x-12-width:p.x+12;ctx.fillStyle='#e8eef4';ctx.shadowColor='#0a1118';ctx.shadowBlur=7;ctx.fillText(label,x,p.y-11);ctx.shadowBlur=0;}
+        if((!mobile&&p.z>.4)||active){const label=station.title||station.id;ctx.font='700 12px Helvetica, Arial, sans-serif';const width=ctx.measureText(label).width;
+          const x=clamp(p.x+12+width>w-22?p.x-12-width:p.x+12,8,Math.max(8,w-width-8));let y=p.y-11;
+          for(let tries=0;tries<5&&labelBoxes.some(b=>x<b.x+b.w&&x+width>b.x&&y>b.y-15&&y-15<b.y);tries++)y+=18;
+          if(!labelBoxes.some(b=>x<b.x+b.w&&x+width>b.x&&y>b.y-15&&y-15<b.y)){labelBoxes.push({x,y,w:width});ctx.fillStyle='#e8eef4';ctx.shadowColor='#0a1118';ctx.shadowBlur=7;ctx.fillText(label,x,y);ctx.shadowBlur=0;}}
       }
       if(bearing)bearing.textContent=`VIEW / ${Math.abs(Math.round(centerLat))}° ${centerLat>=0?'N':'S'} · ${String(Math.abs(Math.round(centerLon))).padStart(3,'0')}° ${centerLon>=0?'E':'W'}`;
       if(cameraMotion)schedule();
@@ -308,7 +352,7 @@
     function setZoom(value){cameraMotion=null;zoom=clamp(value,.64,1.65);schedule();}
     function announceView(){if(liveStatus)liveStatus.textContent=`Globe view ${Math.abs(Math.round(centerLat))} degrees ${centerLat>=0?'north':'south'}, ${Math.abs(Math.round(centerLon))} degrees ${centerLon>=0?'east':'west'}, zoom ${Math.round(zoom*100)} percent. Use the Explore stations button for the same station choices.`;}
     function select(id,{instant=false}={}){const station=stations.find(s=>s.id===id);if(!station)return;selectedId=id;
-      const targetLon=station.lon,targetLat=clamp(station.lat*.82,-67,67),targetZoom=w<760?1.08:1.18;
+      const targetLon=station.lon,targetLat=clamp(station.lat*.82,-67,67),targetZoom=w<=760?1.08:1.18;
       if(instant||reducedMotion()){cameraMotion=null;centerLon=targetLon;centerLat=targetLat;zoom=targetZoom;}
       else{const lonDelta=((targetLon-centerLon+540)%360)-180;cameraMotion={lon:centerLon,lonDelta,lat:centerLat,targetLat,zoom,targetZoom,started:performance.now(),duration:850};}
       schedule();}

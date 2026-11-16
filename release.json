@@ -1,0 +1,13 @@
+{
+  "build": "earth-radio-helvetica-20261115",
+  "created_utc": "2026-11-16T04:23:42.102Z",
+  "sha256": {
+    "index.html": "902e366c74c56d1955b8f9cc34090a648612ab0bce2fdd10660647c757023531",
+    "style.css": "c7fcec80252fe2a16441f14ba5332b194add0ac16ecb2b822647a81ad0cc2795",
+    "app.js": "3f9619a26b02478e7d9d19ec09ac54a614feb95edc3ca491780e103e8b88b662",
+    "audio.js": "79c531184b4b50646458b8b7f90418853c960130b76ec13a27b4ad009293e75c",
+    "globe.js": "6b0d38e6871d0ab512a2ec8e32db0497c6def549850548ad76330f6022f76057",
+    "assets/fonts/helvetica-regular.ttf": "5f865ddf37549ae44630b13a501f813086e2ae974adc86b97337cd9ee4b1e4ff",
+    "assets/fonts/helvetica-bold.ttf": "05291f9de00325c3a3f1acdf9a35a8ce4b4fd7d32394482ebb1699ba7ac73ed5"
+  }
+}

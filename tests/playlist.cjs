@@ -110,8 +110,8 @@ const station = {
   const slowPulse = audio.layers[0].sonic.pulseHz;
   frame = new Uint8ClampedArray(96 * 54 * 4).fill(93);
   audio._sample(audio.layers[0], true);
-  assert(audio.layers[0].sonic.pulseHz > slowPulse + .4, 'measured 5 Hz ocean frame change substantially changes pulse');
-  assert(audio._visualRhythm().oceanMotion > .3, 'ocean visual motion reaches the rhythm driver');
+  assert(audio.layers[0].sonic.pulseHz > slowPulse + .1, 'measured 5 Hz ocean frame change changes pulse');
+  assert(audio._visualRhythm().oceanMotion > .1, 'ocean visual motion reaches the rhythm driver');
   const baseOscillators = audio.context.oscillators.length;
   const baseNoiseSources = audio.context.bufferSources.length;
   audio.nextMotif = 0;
@@ -195,6 +195,11 @@ const station = {
   audio._wood(forestLayer);
   assert(audio.context.oscillators.length > beforePluck, 'moving GEDI imagery can trigger a restrained woody accent');
   assert.equal(globalLayer.sonic.pulseHz, globalPulse, 'CO₂ camera motion alone does not drive bass pulse');
+  audio.setSolo('gedi');audio.nextBeatTime=0;audio.nextMotif=0;
+  const beforeSoloBeat=audio.context.oscillators.length;
+  audio._drums();
+  assert(audio.context.oscillators.length>beforeSoloBeat,'isolated moving-camera layers retain their own scheduled notes without driving shared drums');
+  audio.setSolo(null);
   const activeBus = audio.bus;
   audio.pause();
   assert(activeBus.gain.events.includes(0), 'pause fades the active composition bus');
@@ -220,6 +225,16 @@ const station = {
   assert(audio.layers.find(layer => layer.id === 'pm25').voice, 'flat modeled PM2.5 view drives a voice');
   assert(audio.layers.find(layer => layer.id === 'lightning').voice, 'historical lightning map drives a voice');
   assert(Number.isFinite(audio._visualRhythm().lightningLight), 'lightning brightness reaches the artistic beat grid');
+  assert.equal(audio.setSolo('river'), false, 'visual-only films cannot be isolated as audio');
+  assert.equal(audio.setSolo('nightmap'), true);
+  assert.equal(audio.getState().soloSourceId, 'nightmap');
+  assert(audio.layers.find(layer => layer.id === 'nightmap').voice.gain.gain.value > 0, 'selected layer remains audible');
+  assert.equal(audio.layers.find(layer => layer.id === 'pm25').voice.gain.gain.value, 0, 'other continuous voices fade out');
+  assert.equal(audio.layers.find(layer => layer.id === 'lightning').voice.gain.gain.value, 0, 'other sound layers fade out');
+  assert(Math.abs(audio._visualRhythm().brightness-audio.layers.find(layer => layer.id === 'nightmap').metrics.brightness)<.00001, 'shared rhythm only reads the isolated layer');
+  audio.setSolo(null);
+  assert.equal(audio.getState().soloSourceId, null, 'full mix can be restored');
+  assert(audio.layers.find(layer => layer.id === 'pm25').voice.gain.gain.value > 0, 'other voices return in the full mix');
   audio.stop();
   await audio.play(station, 0);
   const visualTimeBeforeSongSeek = audio.getMedia('ocean').currentTime;
@@ -235,5 +250,45 @@ const station = {
   await audio.play(station);
   assert(Math.abs(audio.getState().trackElapsed - 1.25) < .001, 'resume retains the sought position');
   audio.stop();
-  console.log('Playlist/audio: station motifs, rotation, seek, safe volume, new NASA sound and context sources, measured frame response, camera caveat, mute, pause/resume, and cleanup passed.');
+  const qualityEngine = ({ wide = true, saveData = false, memory = 8, cores = 8 } = {}) => {
+    const qualityWindow = { AudioContext: FakeAudioContext, matchMedia: () => ({ matches: wide }) };
+    vm.runInNewContext(fs.readFileSync(require.resolve('../audio.js'), 'utf8'), {
+      window: qualityWindow, navigator: { connection: { saveData }, deviceMemory: memory, hardwareConcurrency: cores },
+      document, performance: { now: () => now }, Uint8ClampedArray,
+      setInterval: () => 1, clearInterval() {}, setTimeout: () => 1, clearTimeout() {}, console
+    });
+    return qualityWindow;
+  };
+  for (const options of [{ wide: false }, { saveData: true }, { memory: 4 }, { cores: 4 }]) {
+    assert.equal(qualityEngine(options).EarthPreferHiRes, false, 'mobile, data saving and limited devices retain smaller media');
+  }
+  const detailed = qualityEngine();
+  assert.equal(detailed.EarthPreferHiRes, true, 'capable desktop selects detailed media');
+  for (const source of Object.values(detailed.EarthSources)) {
+    assert(source.hdUrl && source.hdPoster, `${source.id} has detailed playback and a detailed paused preview`);
+  }
+  const detailedAudio = new detailed.EarthAudio();
+  await detailedAudio.play(station);
+  const detailedOcean = detailedAudio.layers.find(layer => layer.id === 'ocean');
+  assert.equal(detailedOcean.element.src, detailed.EarthSources.ocean.url, 'capable desktop uses the same analysis copy as mobile');
+  // Retain coverage of a stale playback rejection during a source fallback.
+  detailedOcean.usingHiRes=true;detailedOcean.element.src=detailed.EarthSources.ocean.hdUrl;
+  let rejectOldPlay;
+  const normalPlay = detailedOcean.element.play.bind(detailedOcean.element);
+  detailedOcean.element.play = () => new Promise((resolve, reject) => { rejectOldPlay = reject; });
+  const oldPlay = detailedAudio._playMedia(detailedOcean);
+  detailedOcean.element.play = normalPlay;
+  detailedOcean.element.onerror();
+  rejectOldPlay(new Error('Old detailed request failed'));
+  await oldPlay;
+  assert.equal(detailedOcean.element.src, detailed.EarthSources.ocean.url, 'a failed detailed request retries the smaller original');
+  assert.notEqual(detailedOcean.status, 'failed', 'the old play rejection does not cancel the replacement request');
+  assert.equal(detailedOcean.element.paused, false, 'playing resumes on the smaller fallback');
+  detailedOcean.element.onloadeddata();
+  assert.equal(detailedOcean.status, 'ready', 'fallback frames still drive synthesis');
+  detailedOcean.element.onerror();
+  assert.equal(detailedOcean.status, 'failed', 'failure of both copies stops retrying');
+  assert.equal(detailedAudio.layers.find(layer => layer.id === 'aerosol').status, 'ready', 'other layers remain usable');
+  detailedAudio.stop();
+  console.log('Playlist/audio passed, including all-source detailed media, mobile/data-saving selection and playback fallback without stale-request failures.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

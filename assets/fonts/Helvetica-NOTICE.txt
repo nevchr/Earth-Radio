@@ -1,0 +1,13 @@
+Helvetica Regular and Bold were supplied by the user in helvetica-255.zip
+and copied into this local preview as helvetica-regular.ttf and
+helvetica-bold.ttf. The original font data is unchanged.
+
+Family names in the files: Helvetica; Helvetica-Bold.
+Copyright metadata in both files:
+© 1990-2006 Apple Computer Inc. © 1981 Linotype AG
+© 1990-91 Type Solutions Inc.
+
+The supplied ZIP did not contain a license document. This notice records
+provenance and is not a license grant. The application software's Apache 2.0
+license does not cover these font files. Webfont distribution rights have
+not been established by the supplied project records.
