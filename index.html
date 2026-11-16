@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#17191c">
+  <meta name="description" content="Explore historical NASA Earth visualizations through an interactive globe and sound generated in real time from their frames.">
+  <title>Earth Radio — Listen to a living planet</title>
+  <link rel="icon" href="./assets/earth-radio-blue-globe.png" type="image/png">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <a class="skip-link" href="#exploreToggle">Skip globe and open stations</a>
+  <div class="app-shell" id="top">
+    <main class="planet-stage" aria-label="Interactive Earth Radio globe">
+      <canvas id="globeCanvas" tabindex="0" role="group" aria-label="Interactive Earth globe. Drag to rotate, use arrow keys to rotate, plus and minus keys to zoom, or use the searchable stations list. Pins are approximate editorial entry points, not sensors."></canvas>
+      <div class="planet-vignette" aria-hidden="true"></div>
+      <div class="globe-instruction" id="globeInstruction" aria-hidden="true"><span class="instruction-orbit"></span> Drag to explore <span class="instruction-separator"></span> Scroll to zoom</div>
+      <div class="globe-controls" aria-label="Globe view and zoom controls">
+        <div class="view-picker" id="viewPicker" role="group" aria-label="Globe views for this station"></div>
+        <div class="zoom-controls" role="group" aria-label="Globe zoom">
+          <button id="globeZoomIn" type="button" aria-label="Zoom globe in">+</button>
+          <button id="globeZoomOut" type="button" aria-label="Zoom globe out">−</button>
+        </div>
+      </div>
+      <div class="globe-layer-info" id="globeLayerInfo" hidden></div>
+      <aside class="signal-window" id="signalWindow" aria-label="NASA visualization playing with this station" data-collapsed="false">
+        <div class="signal-heading"><button id="signalToggle" class="signal-toggle" type="button" aria-expanded="true" aria-controls="signalBody" aria-label="Collapse NASA source window"><span id="signalHeading">NASA VIEW</span><strong id="signalCompactTitle">Ocean currents</strong><span class="signal-chevron" aria-hidden="true">⌃</span></button><button id="signalNext" type="button" aria-label="Show next NASA visualization">Next view →</button></div>
+        <div class="signal-body" id="signalBody">
+          <div class="signal-image"><img id="signalPoster" alt="" src="./assets/ocean-poster.jpg"><canvas id="signalCanvas" width="480" height="270" aria-hidden="true" hidden></canvas><span class="signal-pulse" aria-hidden="true"></span><span class="signal-beat" aria-hidden="true"><i></i></span></div>
+          <div class="signal-caption"><strong id="signalTitle">Ocean currents</strong><span id="signalTime">Source frame</span></div>
+          <p id="signalExplanation">Source frames shape the sound.</p>
+        </div>
+      </aside>
+      <div class="globe-coordinate" id="globeBearing" aria-hidden="true">EARTH / 00° N · 000° E</div>
+    </main>
+
+    <a class="brand" href="#top" aria-label="Earth Radio home">
+      <img class="brand-mark" src="./assets/earth-radio-blue-globe.png" alt="" width="40" height="40">
+      <span class="brand-wordmark">EARTH <em>RADIO</em></span>
+    </a>
+    <header class="topbar">
+      <div class="top-actions">
+        <button class="top-button" id="exploreToggle" type="button" aria-controls="stationDrawer" aria-expanded="false">Explore</button>
+        <button class="top-button" id="aboutToggle" type="button" aria-controls="aboutDrawer" aria-expanded="false">About</button>
+        <button class="top-button" id="sourceToggle" type="button" aria-controls="sourceDrawer" aria-expanded="false">Sources</button>
+      </div>
+    </header>
+
+    <aside class="station-drawer drawer" id="stationDrawer" aria-labelledby="stationHeading" data-open="false" hidden>
+            <div class="station-head">
+                <h1 id="stationHeading">Choose a place.</h1>
+        <p class="station-intro">NASA visualizations become sound at each listening point.</p>
+      </div>
+      <label class="search-box" for="stationSearch"><span class="search-icon" aria-hidden="true"></span><span class="sr-only">Search stations</span><input id="stationSearch" type="search" placeholder="Search stations" autocomplete="off"><kbd>/</kbd></label>
+      <div class="list-heading"><span>STATIONS</span><span id="stationCount">00</span></div>
+      <div class="station-list" id="stationList" role="group" aria-label="Listening stations"></div>
+      <p class="empty-list" id="noStations" hidden>No stations match that search.</p>
+      <p class="station-footnote">Pins are curated entry points into NASA visuals. They are not live sensors.</p>
+    </aside>
+
+    <section class="player-drawer drawer" id="playerDrawer" aria-labelledby="receiverTitle" data-open="true" data-expanded="false">
+      <button id="tourStart" class="tour-start" type="button" aria-haspopup="dialog">Guide</button>
+      <div class="receiver-head">
+        <div class="receiver-meta"><span id="receiverKind" class="sr-only">EARTH SYSTEM</span><span id="receiverPlace">GLOBAL</span></div>
+        <h2 id="receiverTitle" tabindex="-1">Choose a place</h2>
+        <p id="receiverDescription">Select a station from the globe or list to begin.</p>
+      </div>
+      <div class="track-now" aria-label="Current generated track">
+        <div class="track-identity"><span id="trackPosition">TRACK 01 / 03</span>
+          <strong id="trackTitle">Pacific Glass</strong>
+          <small id="trackDescription">Visuals become sound</small></div>
+        <button id="previewButton" class="source-preview" type="button" aria-label="Inspect current NASA visual: Ocean currents">
+          <img id="previewPoster" alt="" src="./assets/ocean-poster.jpg">
+          <canvas id="previewCanvas" width="160" height="90" aria-hidden="true" hidden></canvas>
+          <span id="previewCaption">NASA frame · ocean</span>
+        </button>
+      </div>
+      <div class="player-scroll">
+        <div class="transport">
+          <button class="track-nav" id="prevTrack" type="button" aria-label="Previous track" title="Previous track">‹</button>
+          <button class="play-button" id="playButton" type="button" aria-label="Play station"><span class="play-symbol" aria-hidden="true"></span><span id="playLabel">Play station</span></button>
+          <button class="track-nav" id="nextTrack" type="button" aria-label="Next track" title="Next track">›</button>
+        </div>
+        <div class="track-clock"><label class="sr-only" for="trackProgress">Song position</label><input id="trackProgress" type="range" min="0" max="1000" step="1" value="0" aria-label="Scrub current song"><span id="trackTime">00:00 / 01:12</span></div>
+        <div class="volume-row"><button id="muteButton" type="button" aria-pressed="false">Mute</button><label for="volume">Volume</label><input id="volume" type="range" min="0" max="100" value="35"><span id="volumeValue">35%</span></div>
+        <div class="host-row" aria-label="Generated station host"><span class="host-label">AI host <small>synthetic voice</small></span><button id="hostMute" type="button" aria-pressed="false">Mute host</button><button id="hostSkip" type="button">Replay intro</button></div>
+        <p class="audio-hint" id="audioHint">Press Play for locally generated sound. Source dates differ.</p>
+        <button class="expand-button" id="playerExpand" type="button" aria-expanded="false" aria-controls="playerDetails">Sound &amp; sources <span aria-hidden="true">⌄</span></button>
+        <div class="visual-header"><span>CURRENT VISUAL</span><span id="visualCaption">NASA SVS</span></div>
+        <div class="visual-frame" id="visualFrame" tabindex="-1">
+          <video id="visualVideo" muted playsinline loop preload="metadata" aria-hidden="true" hidden></video>
+          <img id="visualImage" alt="" hidden>
+          <span id="focusTarget" class="focus-target" aria-hidden="true"></span>
+          <div id="visualUnavailable" class="visual-unavailable" hidden>Visualization unavailable. The source link below remains available.</div>
+        </div>
+        <div class="visual-caption-row"><span id="focusCoordinates">FOCUS · 50% / 50%</span><span>ON-SCREEN PIXELS</span></div>
+        <div class="time-controls visual-time-controls"><label for="timeline">NASA visual timeline</label><input id="timeline" type="range" min="0" max="1000" value="0" aria-label="Selected NASA visualization timeline"><span id="timeReadout">00:00 / 00:00</span></div>
+
+        <div class="player-details" id="playerDetails" hidden>
+        <div class="section-rule"><span>STATION INTRO</span><span>GENERATED VOICE</span></div>
+        <p id="hostTranscript" class="host-transcript"></p>
+        <p class="source-note">This short ElevenLabs voice clip introduces the station once per listening session. It is synthetic narration, not a local recording or a NASA audio source. Skip or mute it at any time.</p>
+        <div class="section-rule"><span>NASA VISUAL SOURCES</span><span>DIFFERENT DATES</span></div>
+        <p class="layer-intro">These visual layers shape the sound together. Choose one to inspect its changing pixels and source.</p>
+        <div class="layer-list" id="layerList" role="group" aria-label="NASA visual layers"></div>
+
+        <div class="section-rule"><span>READ THE SIGNAL</span><span>VISIBLE PIXELS</span></div>
+        <div class="metrics-grid"><div class="metric"><span id="brightnessLabel">Colour contrast</span><strong id="brightnessValue">—</strong><div class="metric-track"><i id="brightnessBar"></i></div></div><div class="metric"><span id="changeLabel">Visual change</span><strong id="changeValue">—</strong><div class="metric-track"><i id="changeBar"></i></div></div></div>
+        <p id="mappingLegend" class="metric-explanation"></p>
+        <p id="metricExplanation" class="metric-explanation">The sound translates displayed pixels, not physical measurements.</p>
+        <p class="source-note">The globe displays one selected NASA flat-map frame at a time; the plain-Earth icon shows the base map. Globe colours are display-enhanced for visibility, especially faint night lights. The source window keeps the original NASA frame, and sound uses the original pixels. Perpetual Ocean 2, Black Marble, historical ISS lightning, and PM2.5 are equirectangular views; the older ocean, EIC night-light panel, and aerosol still are approximate drapes. All sources have independent historical timelines. Golden night-light points pulse with a synthesized kick, not measured changes in light. Moving-camera films remain in the source window because their pixels cannot be fixed to globe coordinates.</p>
+        <p id="rhythmDescription" class="source-note">Synthesized percussion follows this station's visual textures.</p>
+        <div class="focus-controls"><label for="focusX">Horizontal focus<input id="focusX" type="range" min="4" max="96" value="50"></label><label for="focusY">Vertical focus<input id="focusY" type="range" min="7" max="92" value="50"></label></div>
+        <button id="describeFrame" class="text-button" type="button">Describe current frame <span aria-hidden="true">→</span></button>
+        <p id="frameDescription" class="frame-description">Choose “Describe current frame” for a text summary.</p>
+        <div class="section-rule"><span>ABOUT THE SOURCE</span><span>SCIENCE NOTES</span></div>
+        <p id="timelineContext" class="source-note"></p>
+        <p id="sourceContext" class="source-note"></p>
+        <a id="sourceLink" class="source-link" href="https://svs.gsfc.nasa.gov/" target="_blank" rel="noopener noreferrer">View original at NASA SVS <span aria-hidden="true">↗</span></a>
+        </div>
+      </div>
+    </section>
+
+    <section id="tourDialog" class="tour-dialog" role="dialog" aria-modal="true" aria-labelledby="tourTitle" aria-describedby="tourText" hidden>
+      <div class="tour-card">
+        <div class="tour-heading"><span id="tourStep">1 / 3</span><button id="tourClose" type="button" aria-label="Close first listen guide">×</button></div>
+        <h2 id="tourTitle" tabindex="-1">Choose a place</h2>
+        <p id="tourText">Drag the globe or open Explore to choose a listening point. Pins are curated regions, not sensors.</p>
+        <div class="tour-actions"><button id="tourBack" type="button">Back</button><button id="tourNext" type="button">Next</button></div>
+      </div>
+    </section>
+
+    <section class="info-drawer drawer" id="aboutDrawer" aria-labelledby="aboutTitle" data-open="false" hidden>
+      <div class="info-header"><span class="eyebrow">ABOUT EARTH RADIO</span><button id="aboutClose" class="close-button" type="button" aria-label="Close about panel">×</button></div>
+      <h2 id="aboutTitle">A new way to notice Earth.</h2>
+      <p>Each place has three generated tracks that rotate automatically. Previous and Next switch tracks, and the song slider moves within the current composition without changing NASA video timelines. Every track combines tones and synthesized percussion shaped by the station’s NASA visual frames as they play.</p>
+      <p>Drag the globe to choose a station. It turns toward the selected region and uses the chosen NASA flat-map frame as its surface. The view icons switch among ocean, night-light, atmospheric, and lightning maps. Moving-camera films play in the source window beside the globe. Where night lights are selected, bright rendered pixels glow with the synthesized drum kick. Select the plain-Earth icon to hide the NASA globe overlay. The glow's timing is musical; NASA's visuals keep their own historical timelines.</p>
+      <p>The beat is a musical choice; rendered brightness, colour and change influence its accents and timbre. The audio is a creative reading of pixels, not a field recording, live sensor feed, or calibrated scientific measurement. The marker locations are editorial ways into global and regional visuals.</p>
+      <p>Short pre-generated ElevenLabs voices introduce each station once per session. Four neutral voices rotate across stations. They do not impersonate people from the mapped places, and no spoken audio is derived from NASA data. The player includes host mute, skip, replay, and a transcript.</p>
+      <p>Keyboard access: use Tab to reach the station list and controls; arrow keys rotate the focused globe, and plus or minus zoom it. The searchable list offers the same stations as the pins.</p>
+      <p>Created for NASA Space Apps 2026’s Earth Information Jukebox challenge. NASA does not endorse this project.</p>
+    </section>
+    <section class="info-drawer drawer" id="sourceDrawer" aria-labelledby="sourcesTitle" data-open="false" hidden>
+      <div class="info-header"><span class="eyebrow">DATA &amp; CREDIT</span><button id="sourceClose" class="close-button" type="button" aria-label="Close sources panel">×</button></div>
+      <h2 id="sourcesTitle">The source material.</h2>
+      <p>The player cites the NASA Scientific Visualization Studio source for every sound layer and context film. Animation, color scales, labels, and compression affect pixel readings and therefore the sound. The moving-camera context films are not separately sonified. Compare each source’s scientific context before interpreting what you hear.</p>
+      <div id="sourceList" class="source-list"></div>
+      <p>Generated station narration: <a href="https://elevenlabs.io/" target="_blank" rel="noopener noreferrer">ElevenLabs</a>. Voice clips are bundled with this non-commercial preview; no visitor text or audio is sent to ElevenLabs when listening.</p>
+      <p>See the project README for media transformations and interpretation limits.</p>
+    </section>
+
+    <nav class="mobile-dock" aria-label="Main panels">
+      <button id="stationsToggle" type="button" aria-controls="stationDrawer" aria-expanded="false"><span class="dock-icon stations-icon" aria-hidden="true"></span>Explore</button>
+      <button id="playerToggle" type="button" aria-controls="playerDrawer" aria-expanded="true"><span class="dock-icon play-icon" aria-hidden="true"></span>Listen</button>
+    </nav>
+    <div id="liveStatus" class="sr-only" role="status" aria-live="polite"></div>
+    <canvas id="sampleCanvas" width="96" height="54" hidden></canvas>
+    <audio id="hostAudio" preload="none" aria-hidden="true"></audio>
+  </div>
+  <script src="./globe.js" defer></script>
+  <script src="./audio.js" defer></script>
+  <script src="./app.js" defer></script>
+</body>
+</html>
